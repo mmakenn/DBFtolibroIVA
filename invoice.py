@@ -18,9 +18,18 @@ Almacena:
 """
 LENGHT_PV = 5
 LENGHT_NUM = 20
-ALIQUOT_CODE = {'105': '4',
-                '21': '5',
-                '27': '6'}
+ALIQUOT_CODE = {'105': '0004',
+                '210': '0005',
+                '270': '0006',
+                '21': '0005',
+                '27': '0006'}
+NEGINVOICE_CODE = {'A': '003',
+                   'C': '013',
+                   'B': '008'}
+POSINVOICE_CODE = {'A': '001',
+                   'C': '011',
+                   'B': '006',
+                   'Z': '082'}
 
 '''************************************************************************'''
 '''                                   AUX                                  '''
@@ -65,14 +74,11 @@ class Invoice:
         if pv == 0:
             pv = 1
             
-        if typei == '':
-            typei = 'A'
-            
         self.id = (normalize(pv, LENGHT_PV), normalize(num, LENGHT_NUM)) #(str, str)
         self.cuit = str(cuit) #str
         self.date = date #datatime.date
         self.name = name #str
-        self.typei = typei #str
+        self.typei = typei.upper() #str
         self.exempt = 0 
         self.cng = 0
         self.taxes = [0., 0., 0.] #pVat, pIncome, pGross
@@ -170,7 +176,8 @@ class Invoice:
 
         '''
         if vat != 0:
-            self.vat[ali] = (net, vat)
+            ali = str(ali).replace(".", "").replace(",", "")
+            self.vat[ALIQUOT_CODE[ali]] = (round(net, 2), round(vat, 2))
             
             '''---------->>            GETTERS            <<----------'''
             
@@ -197,7 +204,7 @@ class Invoice:
     
     def getTotal(self):
         '''
-        Evectua la sumatoria de importes de los conceptos de la factura
+        Evectua la sumatoria de los conceptos de la factura
 
         Returns
         -------
@@ -216,7 +223,7 @@ class Invoice:
             totalnet = totalnet + self.vat[v][0]
             totalvat = totalvat + self.vat[v][1]
             
-        return subtotal + totalnet + totalvat
+        return round(subtotal + totalnet + totalvat, 2)
     
     def getType(self):
         '''
@@ -233,14 +240,14 @@ class Invoice:
             Codigo de comprobante con el formato '000'.
 
         '''
-        if self.getTotal() < 0:
-            if self.typei == 'C':
-                return '013'
-            return '003'
-        else:
-            if self.typei == 'C':
-                return '011'
-            return '001'
+        try:
+            if self.getTotal() < 0:
+                    cod = NEGINVOICE_CODE[self.typei]
+            else:
+                    cod = POSINVOICE_CODE[self.typei]
+        except:
+            cod = 'XXX'
+        return cod
 
     def getID(self):
         return self.id
@@ -249,19 +256,22 @@ class Invoice:
         return self.name
     
     def getCNG(self):
-        return self.cng
+        return round(self.cng, 2)
     
     def getCUIT(self):
         return self.cuit
     
     def getExempt(self):
-        return self.exempt
+        return round(self.exempt, 2)
     
     def getTaxes(self):
-        return self.taxes
+        taxes = []
+        for t in self.taxes:
+            taxes.append(round(t, 2))
+        return taxes
     
     def getVats(self):
-        if (self.vat == {}) and not (self.typei == 'C'):
+        if (self.vat == {}) and (self.typei == 'A'):
             return {3: (0., 0.)}
         return self.vat
     

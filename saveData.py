@@ -7,11 +7,11 @@ import os
 '''************************************************************************'''
 '''                                 FORMATS                                '''
 '''************************************************************************'''
-INVOICEFILE = {'PURCHASES': Template('COMPRAS_COMPROBANTES${period}.txt'),
-                'SALES': Template('VENTAS_COMPROBANTES${period}.txt')}
+INVOICEFILE = {'PURCHASES': Template('/${period}COMPRAS_COMPROBANTES.txt'),
+                'SALES': Template('/${period}VENTAS_COMPROBANTES.txt')}
 
-ALIQUOTFILE = {'PURCHASES': Template('COMPRAS_${period}.txt'),
-                'SALES': Template('VENTAS_${period}.txt')}
+ALIQUOTFILE = {'PURCHASES': Template('/${period}COMPRAS_ALICUOTAS.txt'),
+                'SALES': Template('/${period}VENTAS_ALICUOTAS.txt')}
 
 INVOICEFORMAT = Template('${field1}${field2}${field3}${field4}${field5}' +
                          '${field6}${field7}${field8}${field9}${field10}' +
@@ -50,39 +50,97 @@ def assignDocCode(cuit):
     else:
         return '96'
     
+def calcVatTotal(vats):
+    total = 0
+    for vat in vats:
+        total = total + vats[vat][1]
+    return round(total, 2)
+
+def normalize(parameter, characters, ptype = float):
+    if ptype == str:
+        return parameter + ' ' * (characters - len(parameter))
+    
+    parameter = str(parameter)
+    if ptype == float:
+        if not ('.' in parameter):
+            parameter = parameter + '00'
+        elif parameter.index('.') + 2 == len(parameter):
+            parameter = parameter + '0'
+    parameter = parameter.replace('.', '').replace(',', '').replace('-', '')
+    return (characters - len(parameter)) * '0' + parameter
+    
 '''************************************************************************'''
 '''                                  SAVE                                  '''
 '''************************************************************************'''
 def saveData(invoices, invoicesType, period):
-    period = period.rstrip('/', '')
-    
     path = os.getcwd()
+    path = path.replace('\dist\interface', '')
     invoiceFilename = path + INVOICEFILE[invoicesType].substitute(period = period)
     aliquotFilename = path + ALIQUOTFILE[invoicesType].substitute(period = period)
     
-    finished = False
-    while not finished:
-        invoiceFile = open(invoiceFilename, 'a')
-        aliquotFile = open(aliquotFilename, 'a')
-        
-        if invoiceFile and aliquotFile:
-            for invoice in invoices:
-                date = invoice.getDate()
-                itype = invoice.getType()
-                pv, num = invoice.getID()[0], invoice.getID()[1]
-                cuit = invoice.getCUIT()  #20char
-                docType = assignDocCode(cuit)
-                name = invoice.getName() #30char
-                total = invoice.getTotal() #normalize . , 15
-                cng = invoice.getCNG()  #normalize . , 15
-                exempt = invoice.getExempt()  #normalize . , 15
-                pVat, pIncome, pGross = income.getTaxes()[0], income.getTaxes()[1], income.getTaxes()[2]  #normalize . , 15
-                vats = invoice.getVats()
+    invoiceFile = open(invoiceFilename, 'w')
+    aliquotFile = open(aliquotFilename, 'w')
+    
+    if invoiceFile and aliquotFile:
+        for invoice in invoices:
+            date = invoice.getDate()
+            itype = invoice.getType()
+            pv, num = invoice.getID()[0], invoice.getID()[1]
+            cuit = invoice.getCUIT()
+            docType = assignDocCode(cuit)
+            cuit = normalize(cuit, 20, 'cuit')
+            name = normalize(invoice.getName(), 30, str)         
+            total = normalize(invoice.getTotal(), 15)            
+            cng = normalize(invoice.getCNG(), 15)             
+            exempt = normalize(invoice.getExempt(), 15)            
+            pVat = normalize(invoice.getTaxes()[0], 15)  
+            pIncome = normalize(invoice.getTaxes()[1], 15)  
+            pGross = normalize(invoice.getTaxes()[2], 15)
+            
+            vats = invoice.getVats()
+            
+            if invoicesType == 'SALES':
+                fieldInvoice5 = num
+                fieldInvoice11 = pVat
+                fieldInvoice12 = exempt
+                fieldInvoice21 = '0' * 23
+            else:
+                fieldInvoice5 = ' ' * 16
+                fieldInvoice11 = exempt
+                fieldInvoice12 = pVat
+                vatTotal = calcVatTotal(vats)
+                fieldInvoice21 = normalize(vatTotal, 15) + '0' * 26 + ' ' * 30 + '0' * 15
                 
-                if invoicesType == 'SALES':
-                    fieldInvoice5 = num
-                    fieldInvoice21 = '0' * 23
-                else:
-                    fieldInvoice5 = ' ' * 16
-                    fieldInvoice21 = vatTotal + '0' * 26 + ' ' * 30 + '0' * 15
+            line = INVOICEFORMAT.substitute(field1 = date, field2 = itype,
+                                            field3 = pv, field4 = num,
+                                            field5 = fieldInvoice5, 
+                                            field6 = docType, field7 = cuit, 
+                                            field8 = name, field9 = total, 
+                                            field10 = cng,
+                                            field11 = fieldInvoice11, 
+                                            field12 = fieldInvoice12,
+                                            field13 = pGross, field14 = pIncome,
+                                            field19 = len(vats), 
+                                            field21 = fieldInvoice21)
+            invoiceFile.write(line + '\n')
+            
+            if invoicesType == 'SALES':
+                fieldAliquot4 = ''
+                fieldAliquot5 = ''
+            else:
+                fieldAliquot4 = docType
+                fieldAliquot5 = cuit
+            
+            for aliCode in vats:
+                net = normalize(vats[aliCode][0], 15)
+                vat = normalize(vats[aliCode][1], 15)
+                aliCode = normalize(aliCode, 4)
+                line = ALIQUOTFORMAT.substitute(field1 = itype, field2 = pv,
+                                                field3 = num, field4 = fieldAliquot4,
+                                                field5 = fieldAliquot5, field6 = net, 
+                                                field7 = aliCode, field8 = vat)
+                aliquotFile.write(line + '\n')
+                
+    invoiceFile.close()
+    aliquotFile.close()
     

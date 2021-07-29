@@ -4,7 +4,7 @@ import os
 from extractData import *
 from saveData import *
 
-def start(period, purchasesfile, salesfile, cuit = ''):
+def start(period, purchasesFile, salesFile, cuit = ''):
     '''
     
 
@@ -25,4 +25,19 @@ def start(period, purchasesfile, salesfile, cuit = ''):
         DESCRIPTION.
 
     '''   
-S
+    try:
+        if purchasesFile == '':
+            sales = extract(salesFile, 'SALES', cuit)
+            saveData(sales, 'SALES', period)
+        elif salesFile == '':
+            purchases = extract(purchasesFile, 'PURCHASES', cuit)
+            saveData(purchases, 'PURCHASES', period)
+        else:
+            sales = extract(salesFile, 'SALES', cuit)
+            saveData(sales, 'SALES', period)
+            purchases = extract(purchasesFile, 'PURCHASES', cuit)
+            saveData(purchases, 'PURCHASES', period)
+            
+        return 'OK'
+    except:
+        return 'FAILED'
