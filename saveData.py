@@ -72,9 +72,9 @@ def normalize(parameter, characters, ptype = float):
 '''************************************************************************'''
 '''                                  SAVE                                  '''
 '''************************************************************************'''
-def saveData(invoices, invoicesType, period):
-    path = os.getcwd()
-    path = path.replace('\dist\interface', '')
+def saveData(invoices, invoicesType, period, path):
+    # path = os.getcwd()
+    # path = path.replace('\dist\interface', '')
     invoiceFilename = path + INVOICEFILE[invoicesType].substitute(period = period)
     aliquotFilename = path + ALIQUOTFILE[invoicesType].substitute(period = period)
     

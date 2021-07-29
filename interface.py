@@ -21,7 +21,7 @@ cuitentry = Entry(root)
 cuitentry.grid(row=0, column=3)
 
 '''.*********************************************************************·'''
-'''.Botones para obtener las rutas de archivo.'''
+'''.Botones para obtener las rutas de archivo a las bases.'''
 purchasesFilename = ''
 purchasesFilenameLabel = Label(root, text=purchasesFilename)
 purchasesFilenameLabel.grid(row=1, column=4)
@@ -74,19 +74,45 @@ periodentry = Entry(root)
 periodentry.grid(row=3, column=1)
 
 '''.*********************************************************************·'''
+'''.Botones para obtener la ruta a la carpeta destino.'''
+outputPath = ''
+outputPathLabel = Label(root, text=outputPath)
+outputPathLabel.grid(row=4, column=4)
+
+def openOFile():
+    global outputPath
+    outputPath = filedialog.askdirectory(title='Buscar...')
+    outputPathLabel.config(text=outputPath)
+
+def deleteOFile():
+    global outputPath    
+    outputPath = ''
+    outputPathLabel.config(text=outputPath)
+    
+selectoutputPath = Label(root, text='Carpeta de salida de archivos: ')
+selectoutputPath.grid(row=4, column=0) 
+outputPathButton = Button(root, text="Buscar", command=openOFile)
+outputPathButton.grid(row=4, column=1)
+
+outputPathDeleteButton = Button(root, text="Borrar", command=deleteOFile)
+outputPathDeleteButton.grid(row=4, column=3)         
+
+'''.*********************************************************************·'''
 '''.Boton para comenzar la ejecucion.'''
 import main
 def start():
     status = ''
     cuit = cuitentry.get().replace('-', '')
-    if purchasesFilename != '' and purchasesFilename[-3:].lower() != 'dbf':
+    if outputPath == '':
+        messagebox.showerror('Error en Archivo de salida', 'Debe seleccionar una carpeta donde guardar los archivos generados.')
+    elif purchasesFilename != '' and purchasesFilename[-3:].lower() != 'dbf':
         messagebox.showerror('Error en Base de Datos', 'El archivo es inválido. La extensión del archivo debe ser .DBF')
     elif salesFilename != '' and salesFilename[-3:].lower() != 'dbf':
         messagebox.showerror('Error en Base de Datos', 'El archivo es inválido. La extensión del archivo debe ser .DBF')
     elif cuit == '' or (cuit != '' and len(cuit) != 11):
         messagebox.showerror('Error en CUIT', 'El largo debe ser 11 caracteres')
     else:
-        status = main.start(periodentry.get(), purchasesFilename, salesFilename, cuit)
+        status = main.start(periodentry.get(), purchasesFilename, salesFilename, outputPath, cuit)
         
     if status == 'OK':
         messagebox.showinfo('Finalizado', 'El proceso finalizó correctamente. Puede cerrar el programa.')
@@ -95,7 +121,7 @@ def start():
         
         
 startbutton = Button(root, text='Comenzar', command=start)
-startbutton.grid(row=4, column=4)
+startbutton.grid(row=5, column=4)
 '''.*********************************************************************·'''
 
 root.mainloop()
