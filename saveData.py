@@ -134,7 +134,6 @@ def saveData(invoices, invoicesType, period, path):
             for aliCode in vats:
                 net = normalize(vats[aliCode][0], 15)
                 vat = normalize(vats[aliCode][1], 15)
-                aliCode = normalize(aliCode, 4)
                 line = ALIQUOTFORMAT.substitute(field1 = itype, field2 = pv,
                                                 field3 = num, field4 = fieldAliquot4,
                                                 field5 = fieldAliquot5, field6 = net, 

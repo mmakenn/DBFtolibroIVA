@@ -272,7 +272,7 @@ class Invoice:
     
     def getVats(self):
         if (self.vat == {}) and (self.typei == 'A'):
-            return {3: (0., 0.)}
+            return {'0003': (0., 0.)}
         return self.vat
     
     def getDate(self):
